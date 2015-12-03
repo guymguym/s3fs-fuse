@@ -619,7 +619,7 @@ FdEntity::FdEntity(const char* tpath, const char* cpath)
   try{
     pthread_mutexattr_t attr;
     pthread_mutexattr_init(&attr);
-    pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_RECURSIVE_NP);   // recursive mutex
+    pthread_mutexattr_settype(&attr, S3FS_MUTEX_RECURSIVE);   // recursive mutex
     pthread_mutex_init(&fdent_lock, &attr);
     is_lock_init = true;
   }catch(exception& e){
@@ -1448,7 +1448,7 @@ ssize_t FdEntity::Read(char* bytes, off_t start, size_t size, bool force_load)
     // load size(for prefetch)
     size_t load_size = size;
     if(static_cast<size_t>(start + size) < pagelist.Size()){
-      size_t prefetch_max_size = max(size, static_cast<size_t>(S3fsCurl::GetMultipartSize()));
+      size_t prefetch_max_size = max(size, static_cast<size_t>(S3fsCurl::GetMultipartSize() * S3fsCurl::GetMaxParallelCount()));
 
       if(static_cast<size_t>(start + prefetch_max_size) < pagelist.Size()){
         load_size = prefetch_max_size;
@@ -1684,13 +1684,13 @@ size_t FdManager::SetEnsureFreeDiskSpace(size_t size)
   size_t old = FdManager::free_disk_space;
   if(0 == size){
     if(0 == FdManager::free_disk_space){
-      FdManager::free_disk_space = static_cast<size_t>(S3fsCurl::GetMultipartSize());
+      FdManager::free_disk_space = static_cast<size_t>(S3fsCurl::GetMultipartSize() * S3fsCurl::GetMaxParallelCount());
     }
   }else{
     if(0 == FdManager::free_disk_space){
-      FdManager::free_disk_space = max(size, static_cast<size_t>(S3fsCurl::GetMultipartSize()));
+      FdManager::free_disk_space = max(size, static_cast<size_t>(S3fsCurl::GetMultipartSize() * S3fsCurl::GetMaxParallelCount()));
     }else{
-      if(static_cast<size_t>(S3fsCurl::GetMultipartSize()) <= size){
+      if(static_cast<size_t>(S3fsCurl::GetMultipartSize() * S3fsCurl::GetMaxParallelCount()) <= size){
         FdManager::free_disk_space = size;
       }
     }
